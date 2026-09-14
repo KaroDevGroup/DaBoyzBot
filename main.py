@@ -1,9 +1,12 @@
 # KaroDevGroup
+# Josh Karo 
 
 import os
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
+from supabase_client import supabase
+
 
 load_dotenv("/home/container/.env")
 
@@ -35,6 +38,7 @@ async def load_commands():
     await bot.load_extension("commands.unlock")
     await bot.load_extension("commands.clear")
     await bot.load_extension("commands.slowmode")
+    await bot.load_extension("commands.moderation_bridge")
 
 @bot.event
 async def on_ready():
