@@ -7,7 +7,7 @@ from utils.embeds import info_embed
 
 
 GUILD_ID = 908868924488171540
-APP_VERSION = "1.1.8"
+APP_VERSION = "1.1.9"
 
 class Version(commands.Cog):
     def __init__(self, bot: commands.Bot):
