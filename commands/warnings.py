@@ -1,12 +1,13 @@
 # KaroDevGroup
+# Josh Karo
 
 import discord
 from discord.ext import commands
 import json
 import os
 from datetime import datetime
-
 from utils.embeds import success_embed, error_embed
+
 
 GUILD_ID = 908868924488171540
 
@@ -27,7 +28,6 @@ class Warnings(commands.Cog):
     def load_warnings(self):
         if not os.path.exists(WARNINGS_FILE):
             return {}
-
         try:
             with open(WARNINGS_FILE, "r", encoding="utf-8") as file:
                 return json.load(file)

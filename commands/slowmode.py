@@ -1,8 +1,10 @@
 # KaroDevGroup
+# Josh Karo
 
 import discord
 from discord.ext import commands
 from utils.embeds import success_embed, error_embed
+
 
 GUILD_ID = 908868924488171540
 

@@ -1,10 +1,14 @@
 # KaroDevGroup
+# Josh Karo
 
 import discord
 from discord.ext import commands
+from datetime import datetime, timezone
 from utils.embeds import success_embed, error_embed
 
+
 GUILD_ID = 908868924488171540
+LOCK_LOG_CHANNEL_ID = 1476553088172163295
 
 LOCK_ROLE_IDS = {
     1541650077624307772,  # Senior Staff
@@ -16,28 +20,206 @@ class Lock(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    async def send_lock_log(
+        self,
+        guild: discord.Guild,
+        moderator: discord.Member,
+        channel: discord.TextChannel
+    ):
+        log_channel = guild.get_channel(
+            LOCK_LOG_CHANNEL_ID
+        )
+
+        if log_channel is None:
+            try:
+                log_channel = await self.bot.fetch_channel(
+                    LOCK_LOG_CHANNEL_ID
+                )
+            except (
+                discord.NotFound,
+                discord.Forbidden,
+                discord.HTTPException
+            ):
+                print(
+                    "[Lock] Could not find lock log channel."
+                )
+                return
+
+        embed = discord.Embed(
+            title="🔒 Channel Locked",
+            description="A moderation channel lock has been issued.",
+            color=discord.Color.red(),
+            timestamp=datetime.now(
+                timezone.utc
+            )
+        )
+
+        embed.add_field(
+            name="Channel",
+            value=(
+                f"{channel.mention}\n"
+                f"`{channel.name}`\n"
+                f"`{channel.id}`"
+            ),
+            inline=False
+        )
+
+        embed.add_field(
+            name="Moderator",
+            value=(
+                f"{moderator.mention}\n"
+                f"`{moderator}`\n"
+                f"`{moderator.id}`"
+            ),
+            inline=False
+        )
+
+        embed.add_field(
+            name="Action",
+            value="Members can no longer send messages.",
+            inline=False
+        )
+
+        embed.set_footer(
+            text="Da Boyz • Moderation System"
+        )
+
+        try:
+            await log_channel.send(
+                embed=embed
+            )
+
+        except discord.Forbidden:
+            print(
+                "[Lock] Missing permission to send "
+                "messages in the lock log channel."
+            )
+
+        except discord.HTTPException as error:
+            print(
+                "[Lock] Failed to send lock log: "
+                f"{error}"
+            )
+
+    async def issue_lock(
+        self,
+        guild: discord.Guild,
+        moderator: discord.Member,
+        channel: discord.TextChannel
+    ):
+
+        if not any(
+            role.id in LOCK_ROLE_IDS
+            for role in moderator.roles
+        ):
+            return {
+                "success": False,
+                "message":
+                    "You don't have permission to lock channels."
+            }
+
+        bot_member = guild.me
+
+        if bot_member is None:
+            return {
+                "success": False,
+                "message":
+                    "The bot could not determine its server role."
+            }
+
+        permissions = channel.permissions_for(
+            bot_member
+        )
+
+        if not permissions.manage_channels:
+            return {
+                "success": False,
+                "message":
+                    "I don't have permission to manage this channel."
+            }
+
+        try:
+            overwrite = channel.overwrites_for(
+                guild.default_role
+            )
+
+            overwrite.send_messages = False
+
+            await channel.set_permissions(
+                guild.default_role,
+                overwrite=overwrite,
+                reason=(
+                    f"Channel locked by {moderator}"
+                )
+            )
+
+        except discord.Forbidden:
+            return {
+                "success": False,
+                "message":
+                    "Discord denied the channel lock. "
+                    "Check my permissions."
+            }
+
+        except discord.HTTPException as error:
+            print(
+                f"Lock error: {error}"
+            )
+
+            return {
+                "success": False,
+                "message":
+                    "An error occurred while attempting "
+                    "to lock this channel."
+            }
+
+        await self.send_lock_log(
+            guild=guild,
+            moderator=moderator,
+            channel=channel
+        )
+
+        return {
+            "success": True,
+            "channel": channel,
+            "moderator": moderator
+        }
+
     @discord.app_commands.command(
         name="lock",
         description="Lock the current channel."
     )
-    @discord.app_commands.guilds(discord.Object(id=GUILD_ID))
-    async def lock(self, interaction: discord.Interaction):
+    @discord.app_commands.guilds(
+        discord.Object(
+            id=GUILD_ID
+        )
+    )
+    async def lock(
+        self,
+        interaction: discord.Interaction
+    ):
+        guild = interaction.guild
 
-        if not any(role.id in LOCK_ROLE_IDS for role in interaction.user.roles):
+        if guild is None:
             await interaction.response.send_message(
                 embed=error_embed(
-                    "❌ Permission Denied",
-                    "You don't have permission to use this command."
+                    "❌ Action Denied",
+                    "This command can only be used inside the server."
                 ),
                 ephemeral=True
             )
             return
 
-        if not interaction.guild.me.guild_permissions.manage_channels:
+        moderator = interaction.user
+
+        if not isinstance(
+            moderator,
+            discord.Member
+        ):
             await interaction.response.send_message(
                 embed=error_embed(
-                    "❌ Missing Permission",
-                    "I don't have permission to manage this channel."
+                    "❌ Action Denied",
+                    "Unable to identify the moderator."
                 ),
                 ephemeral=True
             )
@@ -45,45 +227,44 @@ class Lock(commands.Cog):
 
         channel = interaction.channel
 
-        try:
-            overwrite = channel.overwrites_for(
-                interaction.guild.default_role
-            )
-            overwrite.send_messages = False
-
-            await channel.set_permissions(
-                interaction.guild.default_role,
-                overwrite=overwrite,
-                reason=f"Channel locked by {interaction.user}"
-            )
-
-            await interaction.response.send_message(
-                embed=success_embed(
-                    "🔒 Channel Locked",
-                    f"**Channel:** {channel.name}\n\n"
-                    "Members can no longer send messages in this channel."
-                )
-            )
-
-        except discord.Forbidden:
+        if not isinstance(
+            channel,
+            discord.TextChannel
+        ):
             await interaction.response.send_message(
                 embed=error_embed(
-                    "❌ Lock Failed",
-                    "Discord denied the channel lock. Check my permissions."
+                    "❌ Invalid Channel",
+                    "This command can only be used in a text channel."
                 ),
                 ephemeral=True
             )
+            return
 
-        except discord.HTTPException as e:
-            print(f"Lock error: {e}")
+        result = await self.issue_lock(
+            guild=guild,
+            moderator=moderator,
+            channel=channel
+        )
 
+        if not result["success"]:
             await interaction.response.send_message(
                 embed=error_embed(
                     "❌ Lock Failed",
-                    "An error occurred while attempting to lock this channel."
+                    result["message"]
                 ),
                 ephemeral=True
             )
+            return
+
+        await interaction.response.send_message(
+            embed=success_embed(
+                "🔒 Channel Locked",
+                f"**Channel:** {channel.name}\n\n"
+                "Members can no longer send messages in this channel."
+            )
+        )
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Lock(bot))
+    await bot.add_cog(
+        Lock(bot)
+    )

@@ -1,8 +1,10 @@
 # KaroDevGroup
+# Josh Karo 
 
 import discord
 from discord.ext import commands
 from utils.embeds import info_embed
+
 
 GUILD_ID = 908868924488171540
 GITHUB_REPO = "https://github.com/KaroDevGroup/DaBoyzApp"

@@ -1,11 +1,13 @@
 # KaroDevGroup
+# Josh Karo
 
 import discord
 from discord.ext import commands
 from utils.embeds import info_embed
 
+
 GUILD_ID = 908868924488171540
-APP_VERSION = "1.1.7"
+APP_VERSION = "1.1.8"
 
 class Version(commands.Cog):
     def __init__(self, bot: commands.Bot):
