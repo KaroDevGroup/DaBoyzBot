@@ -1,4 +1,5 @@
 # KaroDevGroup
+# Josh Karo 
 
 import discord
 
