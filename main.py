@@ -40,6 +40,8 @@ async def load_commands():
     await bot.load_extension("commands.slowmode")
     await bot.load_extension("commands.moderation_bridge")
     await bot.load_extension("commands.embed")
+    await bot.load_extension("commands.tickets")
+    await bot.load_extension("commands.logging")
 
 @bot.event
 async def on_ready():
