@@ -1,6 +1,6 @@
 ---
 
-Last Updated: September 14th, 2026
+Last Updated: September 17th, 2026
 Currently Active: Yes
 VirusTotal Hash: b01c0c8b07fda00a085e4b4e8e9d23ed296589e5be0e8ce11c38fa40130dcb27
 
